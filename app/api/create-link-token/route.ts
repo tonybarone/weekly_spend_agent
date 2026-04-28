@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  const res = await fetch('https://sandbox.plaid.com/link/token/create', {
+  const res = await fetch('https://production.plaid.com/link/token/create', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
