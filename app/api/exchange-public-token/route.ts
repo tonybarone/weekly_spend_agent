@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
   const { public_token } = await req.json();
 
-  const plaidRes = await fetch('https://sandbox.plaid.com/item/public_token/exchange', {
+  const plaidRes = await fetch('https://production.plaid.com/item/public_token/exchange', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
