@@ -27,7 +27,7 @@ export async function GET() {
   const items = await itemsRes.json();
 
   for (const item of items) {
-    const plaidRes = await fetch('https://sandbox.plaid.com/transactions/sync', {
+    const plaidRes = await fetch('https://production.plaid.com/transactions/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
