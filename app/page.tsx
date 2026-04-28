@@ -36,10 +36,10 @@ export default function Home() {
         const exchangeData = await exchangeRes.json();
         console.log(exchangeData);
 
-        if (exchangeData.access_token) {
-          alert('Account connected!');
+        if (exchangeData.success) {
+          alert('Account connected and saved!');
         } else {
-          alert('Account connected, but token exchange had an issue. Check console/logs.');
+          alert('Account connection had an issue. Check Vercel logs.');
         }
       },
     });
