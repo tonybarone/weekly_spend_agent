@@ -14,7 +14,7 @@ export async function GET() {
       products: ['transactions'],
       country_codes: ['US'],
       language: 'en',
-      redirect_uri: 'https://your-vercel-url.vercel.app',
+      redirect_uri: 'https://weekly-spend-agent.vercel.app',
     }),
   });
 
