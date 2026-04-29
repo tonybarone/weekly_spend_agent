@@ -35,7 +35,7 @@ export async function POST(req: Request) {
         item_id: plaidData.item_id,
         access_token: plaidData.access_token,
         next_cursor: null,
-        institution_name: 'Plaid Sandbox',
+        institution_name: 'Connected Institution',
       }),
     }
   );
