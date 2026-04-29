@@ -14,7 +14,7 @@ export async function GET() {
       products: ['transactions'],
       country_codes: ['US'],
       language: 'en',
-      redirect_uri: 'https://weekly-spend-agent-gj70hc8fs-tonyjbarone-9133s-projects.vercel.app',
+      redirect_uri: 'https://weekly-spend-agent.vercel.app',
     }),
   });
 
