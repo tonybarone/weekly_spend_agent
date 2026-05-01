@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 async function supabaseFetch(path: string, options: RequestInit = {}) {
   const url = `${process.env.SUPABASE_URL}/rest/v1/${path}`;
 
