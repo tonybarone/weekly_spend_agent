@@ -18,85 +18,96 @@ export async function GET() {
   const itemsRes = await supabaseFetch('plaid_items?select=*');
 
   if (!itemsRes.ok) {
-    return NextResponse.json(
-      { error: await itemsRes.text() },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: await itemsRes.text() }, { status: 500 });
   }
 
   const items = await itemsRes.json();
 
+  let totalAdded = 0;
+  let totalModified = 0;
+  let totalRemoved = 0;
+
   for (const item of items) {
-    const plaidRes = await fetch('https://production.plaid.com/transactions/sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id: process.env.PLAID_CLIENT_ID,
-        secret: process.env.PLAID_SECRET,
-        access_token: item.access_token,
-        cursor: item.next_cursor,
-        count: 500,
-      }),
-    });
+    let cursor = item.next_cursor;
+    let hasMore = true;
 
-    const plaidData = await plaidRes.json();
+    while (hasMore) {
+      const plaidRes = await fetch('https://production.plaid.com/transactions/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: process.env.PLAID_CLIENT_ID,
+          secret: process.env.PLAID_SECRET,
+          access_token: item.access_token,
+          cursor,
+          count: 500,
+        }),
+      });
 
-    if (!plaidRes.ok) {
-      return NextResponse.json(plaidData, { status: 400 });
-    }
+      const plaidData = await plaidRes.json();
 
-    const added = plaidData.added || [];
-    const modified = plaidData.modified || [];
-    const removed = plaidData.removed || [];
-    const transactionsToUpsert = [...added, ...modified];
+      if (!plaidRes.ok) {
+        return NextResponse.json(plaidData, { status: 400 });
+      }
 
-    if (transactionsToUpsert.length > 0) {
-      const formatted = transactionsToUpsert.map((tx: any) => ({
-        transaction_id: tx.transaction_id,
-        account_id: tx.account_id,
-        posted_date: tx.date,
-        authorized_date: tx.authorized_date,
-        amount: tx.amount,
-        merchant_name: tx.merchant_name,
-        raw_name: tx.name,
-        pending: tx.pending,
-        category: tx.category || null,
-        personal_finance_category: tx.personal_finance_category || null,
-        iso_currency_code: tx.iso_currency_code,
-        is_removed: false,
-      }));
+      const added = plaidData.added || [];
+      const modified = plaidData.modified || [];
+      const removed = plaidData.removed || [];
 
-      const txRes = await supabaseFetch(
-        'transactions?on_conflict=transaction_id',
-        {
-          method: 'POST',
-          headers: { Prefer: 'resolution=merge-duplicates' },
-          body: JSON.stringify(formatted),
+      totalAdded += added.length;
+      totalModified += modified.length;
+      totalRemoved += removed.length;
+
+      const transactionsToUpsert = [...added, ...modified];
+
+      if (transactionsToUpsert.length > 0) {
+        const formatted = transactionsToUpsert.map((tx: any) => ({
+          transaction_id: tx.transaction_id,
+          account_id: tx.account_id,
+          posted_date: tx.date,
+          authorized_date: tx.authorized_date,
+          amount: tx.amount,
+          merchant_name: tx.merchant_name,
+          raw_name: tx.name,
+          pending: tx.pending,
+          category: tx.category || null,
+          personal_finance_category: tx.personal_finance_category || null,
+          iso_currency_code: tx.iso_currency_code,
+          is_removed: false,
+        }));
+
+        const txRes = await supabaseFetch(
+          'transactions?on_conflict=transaction_id',
+          {
+            method: 'POST',
+            headers: { Prefer: 'resolution=merge-duplicates' },
+            body: JSON.stringify(formatted),
+          }
+        );
+
+        if (!txRes.ok) {
+          return NextResponse.json({ error: await txRes.text() }, { status: 500 });
         }
-      );
+      }
 
-      if (!txRes.ok) {
-        return NextResponse.json(
-          { error: await txRes.text() },
-          { status: 500 }
+      for (const removedTx of removed) {
+        await supabaseFetch(
+          `transactions?transaction_id=eq.${removedTx.transaction_id}`,
+          {
+            method: 'PATCH',
+            body: JSON.stringify({ is_removed: true }),
+          }
         );
       }
-    }
 
-    for (const removedTx of removed) {
-      await supabaseFetch(
-        `transactions?transaction_id=eq.${removedTx.transaction_id}`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify({ is_removed: true }),
-        }
-      );
+      cursor = plaidData.next_cursor;
+      hasMore = plaidData.has_more === true;
     }
 
     await supabaseFetch(`plaid_items?id=eq.${item.id}`, {
       method: 'PATCH',
       body: JSON.stringify({
-        next_cursor: plaidData.next_cursor,
+        next_cursor: cursor,
         updated_at: new Date().toISOString(),
       }),
     });
@@ -105,5 +116,8 @@ export async function GET() {
   return NextResponse.json({
     success: true,
     message: 'Transactions synced',
+    totalAdded,
+    totalModified,
+    totalRemoved,
   });
 }
