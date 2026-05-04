@@ -66,3 +66,4 @@ return NextResponse.json({
   status,
   top_merchants: topMerchants,
 });
+}
