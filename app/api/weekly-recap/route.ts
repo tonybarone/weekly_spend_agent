@@ -31,7 +31,9 @@ export async function GET() {
     `transactions?posted_date=gte.${startStr}&posted_date=lte.${endStr}&pending=eq.false&is_removed=eq.false`
   );
 
-  const total = data.reduce((sum: number, tx: any) => sum + tx.amount, 0);
+  const total = data
+  .filter((tx: any) => tx.amount > 0) // only spending, exclude credits/refunds
+  .reduce((sum: number, tx: any) => sum + tx.amount, 0);
 
   const merchantMap: Record<string, number> = {};
 
@@ -47,12 +49,20 @@ export async function GET() {
 
   const budget = 1000;
 
-  return NextResponse.json({
-    week_start: startStr,
-    week_end: endStr,
-    total_spend: total,
-    budget,
-    remaining: budget - total,
-    top_merchants: topMerchants,
-  });
+  let status = 'on_track';
+
+if (total > 1000) {
+  status = 'over_budget';
+} else if (total > 700) {
+  status = 'warning';
 }
+
+return NextResponse.json({
+  week_start: startStr,
+  week_end: endStr,
+  total_spend: total,
+  budget,
+  remaining: budget - total,
+  status,
+  top_merchants: topMerchants,
+});
