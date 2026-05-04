@@ -1,75 +1,33 @@
 'use client';
 
-import { useEffect } from 'react';
-
-declare global {
-  interface Window {
-    Plaid?: any;
-  }
-}
+import { useEffect, useState } from 'react';
 
 export default function Home() {
-  const connectPlaid = async () => {
-    const res = await fetch('/api/create-link-token');
-    const data = await res.json();
-
-    if (!data.link_token) {
-      alert('Plaid link token was not created. Check Vercel environment variables.');
-      console.error(data);
-      return;
-    }
-
-    if (!window.Plaid) {
-      alert('Plaid script has not loaded yet. Wait a few seconds and try again.');
-      return;
-    }
-
-    const handler = window.Plaid.create({
-      token: data.link_token,
-      onSuccess: async (public_token: string) => {
-        const exchangeRes = await fetch('/api/exchange-public-token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ public_token }),
-        });
-
-        const exchangeData = await exchangeRes.json();
-        console.log(exchangeData);
-
-        if (exchangeData.success) {
-          alert('Account connected and saved!');
-        } else {
-          alert('Account connection had an issue. Check Vercel logs.');
-        }
-      },
-    });
-
-    handler.open();
-  };
+  const [data, setData] = useState<any>(null);
 
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
-    script.async = true;
-    document.body.appendChild(script);
+    fetch('/api/weekly-recap')
+      .then(res => res.json())
+      .then(setData);
   }, []);
 
+  if (!data) return <div>Loading...</div>;
+
   return (
-    <main style={{ padding: 40, fontFamily: 'Arial, sans-serif' }}>
-      <h1>Weekly Spend Agent</h1>
-      <p>Connect a test credit card through Plaid Sandbox.</p>
-      <button
-        onClick={connectPlaid}
-        style={{
-          padding: '12px 18px',
-          borderRadius: 8,
-          border: '1px solid #222',
-          cursor: 'pointer',
-          fontSize: 16,
-        }}
-      >
-        Connect Credit Card
-      </button>
-    </main>
+    <div style={{ padding: 24, fontFamily: 'sans-serif' }}>
+      <h1>Weekly Spend</h1>
+
+      <h2>${data.total_spend.toFixed(2)}</h2>
+      <p>Remaining: ${data.remaining.toFixed(2)}</p>
+
+      <h3>Top Merchants</h3>
+      <ul>
+        {data.top_merchants.map((m: any) => (
+          <li key={m.name}>
+            {m.name}: ${m.amount.toFixed(2)}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
