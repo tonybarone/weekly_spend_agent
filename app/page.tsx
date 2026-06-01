@@ -31,7 +31,7 @@ export default function Home() {
       <div style={{ maxWidth: 860, margin: '0 auto' }}>
         <div style={{ marginBottom: 28 }}>
           <p style={{ textTransform: 'uppercase', letterSpacing: 2, color: '#6366f1', fontWeight: 700 }}>
-            Barone Household Money Rhythm
+            Barone Family Spending Pulse
           </p>
           <h1 style={{ fontSize: 48, margin: 0 }}>Weekly Spend Agent</h1>
           <p style={{ color: '#6b7280', fontSize: 18 }}>
