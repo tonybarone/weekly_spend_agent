@@ -19,7 +19,7 @@ export async function GET() {
   const today = new Date();
 
   const start = new Date(today);
-  start.setDate(today.getDate() - today.getDay()); // start of week (Sunday)
+  start.setDate(today.getDate() - today.getDay());
 
   const end = new Date(start);
   end.setDate(start.getDate() + 6);
@@ -31,13 +31,25 @@ export async function GET() {
     `transactions?posted_date=gte.${startStr}&posted_date=lte.${endStr}&pending=eq.false&is_removed=eq.false`
   );
 
-  const total = data
-  .filter((tx: any) => tx.amount > 0) // only spending, exclude credits/refunds
-  .reduce((sum: number, tx: any) => sum + tx.amount, 0);
+  const spendData = data.filter((tx: any) => {
+    const name = `${tx.merchant_name || ''} ${tx.raw_name || ''}`.toLowerCase();
+
+    return (
+      tx.amount > 0 &&
+      !name.includes('transfer') &&
+      !name.includes('payroll') &&
+      !name.includes('venmo')
+    );
+  });
+
+  const total = spendData.reduce(
+    (sum: number, tx: any) => sum + tx.amount,
+    0
+  );
 
   const merchantMap: Record<string, number> = {};
 
-  for (const tx of data) {
+  for (const tx of spendData) {
     const name = tx.merchant_name || tx.raw_name || 'Unknown';
     merchantMap[name] = (merchantMap[name] || 0) + tx.amount;
   }
@@ -51,19 +63,20 @@ export async function GET() {
 
   let status = 'on_track';
 
-if (total > 1000) {
-  status = 'over_budget';
-} else if (total > 700) {
-  status = 'warning';
-}
+  if (total > 1000) {
+    status = 'over_budget';
+  } else if (total > 700) {
+    status = 'warning';
+  }
 
-return NextResponse.json({
-  week_start: startStr,
-  week_end: endStr,
-  total_spend: total,
-  budget,
-  remaining: budget - total,
-  status,
-  top_merchants: topMerchants,
-});
+  return NextResponse.json({
+    week_start: startStr,
+    week_end: endStr,
+    total_spend: total,
+    budget,
+    remaining: budget - total,
+    status,
+    transaction_count: spendData.length,
+    top_merchants: topMerchants,
+  });
 }
