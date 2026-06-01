@@ -28,15 +28,8 @@ export async function GET() {
   const endStr = end.toISOString().split('T')[0];
 
   const data = await supabaseFetch(
-    `transactions?posted_date=gte.${startStr}&posted_date=lte.${endStr}&pending=eq.false&is_removed=eq.false`
+    `transactions?posted_date=gte.${startStr}&posted_date=lte.${endStr}&is_removed=eq.false`
   );
-
-  return NextResponse.json({
-  startStr,
-  endStr,
-  rowsReturned: data.length,
-  sample: data.slice(0, 5),
-});
 
   const spendData = data.filter((tx: any) => {
     const name = `${tx.merchant_name || ''} ${tx.raw_name || ''}`.toLowerCase();
