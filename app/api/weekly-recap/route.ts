@@ -31,15 +31,23 @@ export async function GET() {
     `transactions?posted_date=gte.${startStr}&posted_date=lte.${endStr}&is_removed=eq.false`
   );
 
-  const spendData = data.filter((tx: any) => {
-    const name = `${tx.merchant_name || ''} ${tx.raw_name || ''}`.toLowerCase();
+ const spendData = data.filter((tx: any) => {
+  const name = `${tx.merchant_name || ''} ${tx.raw_name || ''}`.toLowerCase();
 
-    return (
-      tx.amount > 0 &&
-      !name.includes('transfer') &&
-      !name.includes('payroll') &&
-      !name.includes('venmo')
-    );
+  const isSpend = tx.amount > 0;
+
+  const isExcluded =
+    name.includes('transfer') ||
+    name.includes('payroll') ||
+    name.includes('venmo') ||
+    name.includes('zelle') ||
+    name.includes('payment') ||
+    name.includes('ach pmt') ||
+    name.includes('amex epayment') ||
+    name.includes('david gifford') ||
+    name.includes('rent');
+
+  return isSpend && !isExcluded;
   });
 
   const total = spendData.reduce(
