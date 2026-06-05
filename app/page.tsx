@@ -6,9 +6,14 @@ export default function Home() {
   const [data, setData] = useState<any>(null);
 
   useEffect(() => {
-    fetch('/api/weekly-recap')
-      .then((res) => res.json())
-      .then(setData);
+  async function refreshData() {
+    await fetch('/api/sync-transactions');
+    const recapRes = await fetch('/api/weekly-recap');
+    const recapData = await recapRes.json();
+    setData(recapData);
+  }
+
+  refreshData();
   }, []);
 
   if (!data) {
